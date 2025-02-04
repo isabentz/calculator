@@ -1,0 +1,227 @@
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+
+const AbacusCalculator = () => {
+  const [display, setDisplay] = useState('0');
+  const [currentValue, setCurrentValue] = useState('');
+  const [previousValue, setPreviousValue] = useState('');
+  const [operation, setOperation] = useState('');
+  const [calculated, setCalculated] = useState(false);
+
+  // Each row represents a digit position with 5 beads
+  const [abacusBeads, setAbacusBeads] = useState([
+    [false, false, false, false, false], // ones
+    [false, false, false, false, false], // fives
+    [false, false, false, false, false], // twenty-fives
+    [false, false, false, false, false], // hundreds
+  ]);
+
+  const updateAbacusBeads = (value) => {
+    const num = Math.abs(Math.floor(Number(value) || 0));
+    const newBeads = [...abacusBeads];
+    
+    // Convert number to base-5 representation for each row
+    let remaining = num;
+    
+    // Ones (0-4)
+    const ones = remaining % 5;
+    remaining = Math.floor(remaining / 5);
+    
+    // Fives (0-4 groups of 5)
+    const fives = remaining % 5;
+    remaining = Math.floor(remaining / 5);
+    
+    // Twenty-fives (0-4 groups of 25)
+    const twentyFives = remaining % 5;
+    remaining = Math.floor(remaining / 5);
+    
+    // Hundreds (0-4 groups of 100)
+    const hundreds = remaining % 5;
+    
+    // Update beads for each row
+    for (let i = 0; i < 5; i++) {
+      newBeads[0][i] = i < ones;
+      newBeads[1][i] = i < fives;
+      newBeads[2][i] = i < twentyFives;
+      newBeads[3][i] = i < hundreds;
+    }
+    
+    setAbacusBeads(newBeads);
+  };
+
+  const handleNumber = (num) => {
+    let newValue;
+    if (calculated) {
+      newValue = num;
+      setCurrentValue(num);
+      setCalculated(false);
+    } else {
+      newValue = currentValue + num;
+      setCurrentValue(newValue);
+    }
+    setDisplay(newValue);
+    updateAbacusBeads(newValue);
+  };
+
+  const handleOperation = (op) => {
+    setOperation(op);
+    setPreviousValue(currentValue);
+    setCurrentValue('');
+    setCalculated(false);
+  };
+
+  const calculate = () => {
+    let result = 0;
+    const prev = parseFloat(previousValue) || 0;
+    const current = parseFloat(currentValue) || 0;
+
+    switch (operation) {
+      case '+':
+        result = prev + current;
+        break;
+      case '-':
+        result = prev - current;
+        break;
+      default:
+        return;
+    }
+
+    const resultStr = result.toString();
+    setDisplay(resultStr);
+    setCurrentValue(resultStr);
+    updateAbacusBeads(result);
+    setCalculated(true);
+  };
+
+  const clear = () => {
+    setDisplay('0');
+    setCurrentValue('');
+    setPreviousValue('');
+    setOperation('');
+    setCalculated(false);
+    setAbacusBeads(abacusBeads.map(row => row.map(() => false)));
+  };
+
+  return (
+    <Card className="w-96 p-4 bg-black">
+      <CardContent>
+        {/* Abacus Display */}
+        <div className="mb-4 bg-purple-900 p-4 rounded-lg shadow-inner border-2 border-purple-500">
+          {/* Abacus Frame */}
+          <div className="space-y-3">
+            {/* Display row labels */}
+            <div className="flex justify-around text-xs text-yellow-300 mb-1">
+              <span>×100</span>
+              <span>×25</span>
+              <span>×5</span>
+              <span>×1</span>
+            </div>
+            {/* Render beads from top to bottom */}
+            {abacusBeads.slice().reverse().map((row, rowIndex) => (
+              <div key={rowIndex} className="flex justify-center items-center h-6 bg-black rounded relative">
+                {/* Vertical bar */}
+                <div className="absolute w-1 h-full bg-pink-500"></div>
+                {/* Beads */}
+                <div className="flex space-x-2">
+                  {row.map((active, beadIndex) => (
+                    <div
+                      key={beadIndex}
+                      className={`w-4 h-4 rounded-full transition-all shadow-lg ${
+                        active 
+                          ? 'bg-cyan-400 shadow-cyan-500/50' 
+                          : 'bg-purple-600 shadow-purple-500/50'
+                      }`}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Digital Display */}
+          <div className="text-right text-2xl font-mono mt-4 bg-black text-green-400 p-2 rounded border border-green-500 shadow-lg shadow-green-500/20">
+            {display}
+          </div>
+        </div>
+
+        {/* Calculator Keyboard */}
+        <div className="grid grid-cols-4 gap-2">
+          <Button 
+            variant="outline"
+            className="col-span-3 bg-red-500 hover:bg-red-600 text-yellow-300 border-red-400 shadow-lg shadow-red-500/50"
+            onClick={clear}
+          >
+            Clear
+          </Button>
+          <Button 
+            variant="secondary"
+            className="bg-pink-500 hover:bg-pink-600 text-cyan-300 shadow-lg shadow-pink-500/50"
+            onClick={() => handleOperation('+')}
+          >
+            +
+          </Button>
+          {[7, 8, 9].map(num => (
+            <Button
+              key={num}
+              variant="outline"
+              className="bg-blue-500 hover:bg-blue-600 text-yellow-200 border-blue-400 shadow-lg shadow-blue-500/50"
+              onClick={() => handleNumber(num.toString())}
+            >
+              {num}
+            </Button>
+          ))}
+          <Button 
+            variant="secondary"
+            className="bg-pink-500 hover:bg-pink-600 text-cyan-300 shadow-lg shadow-pink-500/50"
+            onClick={() => handleOperation('-')}
+          >
+            -
+          </Button>
+          {[4, 5, 6].map(num => (
+            <Button
+              key={num}
+              variant="outline"
+              className="bg-blue-500 hover:bg-blue-600 text-yellow-200 border-blue-400 shadow-lg shadow-blue-500/50"
+              onClick={() => handleNumber(num.toString())}
+            >
+              {num}
+            </Button>
+          ))}
+          <Button 
+            variant="secondary"
+            className="row-span-2 bg-green-500 hover:bg-green-600 text-yellow-300 shadow-lg shadow-green-500/50"
+            onClick={calculate}
+          >
+            =
+          </Button>
+          {[1, 2, 3].map(num => (
+            <Button
+              key={num}
+              variant="outline"
+              className="bg-blue-500 hover:bg-blue-600 text-yellow-200 border-blue-400 shadow-lg shadow-blue-500/50"
+              onClick={() => handleNumber(num.toString())}
+            >
+              {num}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            className="col-span-2 bg-blue-500 hover:bg-blue-600 text-yellow-200 border-blue-400 shadow-lg shadow-blue-500/50"
+            onClick={() => handleNumber('0')}
+          >
+            0
+          </Button>
+          <Button
+            variant="outline"
+            className="bg-blue-500 hover:bg-blue-600 text-yellow-200 border-blue-400 shadow-lg shadow-blue-500/50"
+            onClick={() => handleNumber('.')}
+          >
+            .
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default AbacusCalculator;
